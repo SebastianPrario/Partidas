@@ -94,7 +94,7 @@ export default function App() {
 
   return (
     <div className="container-fluid py-4">
-      <h1>Subir archivo Excel</h1>
+      <h1>Calcular Precio Liquidado</h1>
       <div className="d-flex gap-2 align-items-center">
         <UploadExcel onData={(data) => setRows(data)} />
         <button 
@@ -130,14 +130,14 @@ export default function App() {
         ) : (
           <div className="table-responsive">
             <table className="table table-striped table-bordered">
-              <thead>
+              {/* <thead>
                 <tr>
                   {EXPORT_COLUMNS.map(col => (
                     <th key={col}>{col}</th>
                   ))}
                 </tr>
-              </thead>
-              <tbody>
+              </thead> */}
+              {/* <tbody>
                 {(filteredRows.length > 0 ? filteredRows : rows).map((r, i) => (
                   <tr key={i}>
                     {EXPORT_COLUMNS.map(col => (
@@ -145,7 +145,7 @@ export default function App() {
                     ))}
                   </tr>
                 ))}
-              </tbody>
+              </tbody> */}
             </table>
           </div>
         )}

@@ -24,8 +24,8 @@ export default function SearchPartidas({ options = [], onFilter }) {
 
   return (
     <form onSubmit={handleSubmit} className="d-flex align-items-center" style={{ gap: 8 }}>
-      <label className="d-flex align-items-center" style={{ gap: 8 }}>
-        <span className="me-2">NRO_PARTID:</span>
+      <label className="d-flex align-items-center" style={{ gap: 6 }}>
+        <span className="me-2 col-8">Seleccionar Partida:</span>
         <select className="form-select form-select-sm" style={{ minWidth: 200 }} value={query} onChange={(e) => setQuery(e.target.value)}>
           <option value="">-- seleccionar --</option>
           {options.map((opt) => (
