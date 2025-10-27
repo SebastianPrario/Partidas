@@ -122,7 +122,7 @@ export default function DetallePartida({ rows = [] , partidaNro }) {
                       min="0"
                     />
                   </td>
-                  <td className="text-end">{precioPromedio.toFixed(4)}</td>
+                  <td className="text-end">{precioPromedio.toFixed(2)}</td>
                 </tr>
               )
             })}
