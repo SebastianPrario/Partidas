@@ -12,6 +12,7 @@ export default function App() {
   const [rows, setRows] = useState([])
   const [exporting, setExporting] = useState(false)
   const [filteredRows, setFilteredRows] = useState([])
+  const [partidaFilter, setPartidaFilter] = useState('')
 
   const handleExportSQLite = async () => {
     if (!rows || rows.length === 0) return
@@ -73,6 +74,7 @@ export default function App() {
   const handleFilter = (nroPartid) => {
     if (!nroPartid) {
       setFilteredRows([])
+      setPartidaFilter('')
       return
     }
     const q = String(nroPartid).toLowerCase()
@@ -81,6 +83,7 @@ export default function App() {
       return val.includes(q)
     })
     setFilteredRows(found)
+    setPartidaFilter(nroPartid)
   }
 
   const partidasOptions = useMemo(() => {
@@ -122,32 +125,11 @@ export default function App() {
         
         {/* Detalle partida para las filas filtradas */}
         {filteredRows.length > 0 && (
-          <DetallePartida rows={filteredRows} />
+          <DetallePartida rows={filteredRows} partidaNro={partidaFilter} />
         )}
 
-        {rows.length === 0 ? (
+        {rows.length === 0 && (
           <div>No hay datos cargados</div>
-        ) : (
-          <div className="table-responsive">
-            <table className="table table-striped table-bordered">
-              {/* <thead>
-                <tr>
-                  {EXPORT_COLUMNS.map(col => (
-                    <th key={col}>{col}</th>
-                  ))}
-                </tr>
-              </thead> */}
-              {/* <tbody>
-                {(filteredRows.length > 0 ? filteredRows : rows).map((r, i) => (
-                  <tr key={i}>
-                    {EXPORT_COLUMNS.map(col => (
-                      <td key={col + i}>{r[col] != null ? String(r[col]) : ''}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody> */}
-            </table>
-          </div>
         )}
       </section>
     </div>

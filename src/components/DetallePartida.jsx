@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useRef } from 'react'
 
-export default function DetallePartida({ rows = [] }) {
+export default function DetallePartida({ rows = [] , partidaNro }) {
   // Estado para mantener los precios liquidados por DES_ARTICU
   const [preciosLiquidados, setPreciosLiquidados] = useState({})
   console.log('Rendering DetallePartida with rows:', rows)
@@ -54,20 +54,46 @@ export default function DetallePartida({ rows = [] }) {
 
   if (!resumen.length) return null
 
+  const tableRef = useRef(null)
+
+  const handlePrint = () => {
+    try {
+      const content = tableRef.current ? tableRef.current.innerHTML : ''
+      const win = window.open('', '_blank')
+      if (!win) {
+        alert('No se pudo abrir la ventana de impresión. Revisa el bloqueador de ventanas emergentes.')
+        return
+      }
+      win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Detalle Partida</title>` +
+        '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css">' +
+        '<style>body{padding:20px;font-family:Arial,Helvetica,sans-serif} table{width:100%;border-collapse:collapse}</style>' +
+        `</head><body>${content}<script>window.onload=function(){setTimeout(()=>{window.print();},200);};</script></body></html>`)
+      win.document.close()
+    } catch (err) {
+      console.error('Error printing', err)
+      alert('Error al preparar la impresión. Revisa la consola para más detalles.')
+    }
+  }
+
   return (
-    <div className="mt-4">
-      <h3>Detalle por Partida</h3>
-      <div className="table-responsive">
+    <div id="detalle-partida" className="mt-4">
+      
+
+      <div className="table-responsive" ref={tableRef}>
+        <div className="d-flex justify-content-between align-items-center mb-2">
+        <h3 className="m-0">{partidaNro ? `Detalle de Partida: ${partidaNro}` : 'Detalle por Artículo'}</h3>
+        <button className="btn btn-sm btn-outline-primary" onClick={handlePrint}>Imprimir PDF</button>
+        </div>
         <table className="table table-striped table-bordered">
           <thead>
             <tr>
               <th>Descripción Artículo</th>
-              <th className="text-end">Kilos a Facturar</th>
-              <th className="text-end">Entrada en kilos</th>
-              {/* <th className="text-end">Entrada Valorizada</th> 
-              <th className="text-end">Venta Total</th>  */}
-              <th className="text-end col-2">Precio Liquidado</th>
-              <th className="text-end">Precio a Facturar</th>
+              <th className="text-end">Cantidad Total</th>
+              <th className="text-end">Entrada Total</th>
+              {/* <th className="text-end">Entrada Valorizada</th>
+              <th className="text-end">Venta Total</th> */}
+              <th className="text-end">Precio Liquidado</th>
+              <th className="text-end">Precio Promedio</th>
             </tr>
           </thead>
           <tbody>
@@ -75,14 +101,15 @@ export default function DetallePartida({ rows = [] }) {
               const precioLiquidado = Number(preciosLiquidados[descripcion]) || 0
               const entradaValorizada = entradaTotal * precioLiquidado
               const ventaTotalVal = ventaTotal || 0
+              // PrecioPromedio = (EntradaValorizada + VentaTotal) / CantidadTotal
               const precioPromedio = cantidadTotal !== 0 ? (entradaValorizada + ventaTotalVal) / cantidadTotal : 0
 
               return (
                 <tr key={descripcion}>
                   <td>{descripcion}</td>
                   <td className="text-end">{cantidadTotal.toFixed(2)}</td>
-                  <td className="text-end">{entradaTotal.toFixed(2)}</td> 
-                  {/* <td className="text-end">{entradaValorizada.toFixed(2)}</td> 
+                  <td className="text-end">{entradaTotal.toFixed(2)}</td>
+                  {/* <td className="text-end">{entradaValorizada.toFixed(2)}</td>
                   <td className="text-end">{ventaTotalVal.toFixed(2)}</td> */}
                   <td>
                     <input
