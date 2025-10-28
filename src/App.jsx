@@ -2,7 +2,9 @@ import React, { useState, useMemo } from 'react'
 import UploadExcel from './components/UploadExcel'
 import SearchPartidas from './components/SearchPartidas'
 import DetallePartida from './components/DetallePartida'
-import initSqlJs from 'sql.js'
+import RangoBusqueda from './components/RangoBusqueda'
+import GenerarPDF from './components/GenerarPDF'
+
 
 const EXPORT_COLUMNS = [
   "COD_ARTICU","DES_ARTICU", "TIPO_COMP","NUM_COMP","DIA", "MES",  "ANIO", "COD_CLIENT", "NOM_CLIENT","CANTIDAD", "PRECIO", "NRO_PARTID"
@@ -10,67 +12,13 @@ const EXPORT_COLUMNS = [
 
 export default function App() {
   const [rows, setRows] = useState([])
-  const [exporting, setExporting] = useState(false)
   const [filteredRows, setFilteredRows] = useState([])
   const [partidaFilter, setPartidaFilter] = useState('')
+  const [showModal, setShowModal] = useState(false)
+  const [showPDFModal, setShowPDFModal] = useState(false)
+  const [resumenData, setResumenData] = useState(null)
 
-  const handleExportSQLite = async () => {
-    if (!rows || rows.length === 0) return
-    setExporting(true)
-    try {
-      const SQL = await initSqlJs({ locateFile: file => `https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/${file}` })
-      const db = new SQL.Database()
-
-      // create table
-      const columnsSql = EXPORT_COLUMNS.map(col => {
-        // choose type heuristically
-        if (["DIA","MES","ANIO"].includes(col)) return `\"${col}\" INTEGER`
-        if (["CANTIDAD","PRECIO"].includes(col)) return `\"${col}\" REAL`
-        return `\"${col}\" TEXT`
-      }).join(', ')
-      db.run(`CREATE TABLE IF NOT EXISTS partidas (${columnsSql});`)
-
-      // prepare insert
-      const placeholders = EXPORT_COLUMNS.map(() => '?').join(', ')
-      const insertSql = `INSERT INTO partidas (${EXPORT_COLUMNS.map(c => `\"${c}\"`).join(',')}) VALUES (${placeholders});`
-      const stmt = db.prepare(insertSql)
-
-      for (const row of rows) {
-        const values = EXPORT_COLUMNS.map(col => {
-          const v = row[col]
-          // try convert numeric-like values
-          if (v === null || v === undefined || v === '') return null
-          // If the column is numeric
-          if (["DIA","MES","ANIO"].includes(col)) return Number(v) || null
-          if (["CANTIDAD","PRECIO"].includes(col)) {
-            const n = Number(String(v).replace(',', '.'))
-            return isNaN(n) ? null : n
-          }
-          return String(v)
-        })
-        stmt.run(values)
-      }
-      stmt.free()
-
-      const binaryArray = db.export()
-      const blob = new Blob([binaryArray], { type: 'application/x-sqlite3' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'partidas.sqlite'
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
-      db.close()
-    } catch (err) {
-      console.error('Error exporting SQLite', err)
-      alert('Error al generar la base SQLite. Ver consola para detalles.')
-    } finally {
-      setExporting(false)
-    }
-  }
-
+  
   const handleFilter = (nroPartid) => {
     if (!nroPartid) {
       setFilteredRows([])
@@ -85,6 +33,34 @@ export default function App() {
     setFilteredRows(found)
     setPartidaFilter(nroPartid)
   }
+
+  const generarPDFRango = (desde, hasta) => {
+    // Filtrar las partidas en el rango
+    const partidasEnRango = rows.filter(row => {
+      const nroPartida = String(row['NRO_PARTID']).trim()
+      return nroPartida >= desde && nroPartida <= hasta
+    })
+
+    // Agrupar por partida y artículo
+    const resumen = partidasEnRango.reduce((acc, row) => {
+      const partida = String(row['NRO_PARTID']).trim()
+      const articulo = row['DES_ARTICU']
+      const cantidad = parseFloat(String(row['CANTIDAD']).replace(',', '.')) || 0
+
+      if (!acc[partida]) {
+        acc[partida] = {}
+      }
+      if (!acc[partida][articulo]) {
+        acc[partida][articulo] = 0
+      }
+      acc[partida][articulo] += cantidad
+      return acc
+    }, {})
+
+    setShowModal(false)
+    setResumenData(resumen)
+    setShowPDFModal(true)
+    }
 
   const partidasOptions = useMemo(() => {
     const set = new Set()
@@ -101,19 +77,35 @@ export default function App() {
       <div className="d-flex gap-2 align-items-center">
         <UploadExcel onData={(data) => setRows(data)} />
         <button 
-          className="btn btn-primary"
-          onClick={handleExportSQLite} 
-          disabled={exporting || rows.length === 0}
-        >
-          {exporting ? 'Generando...' : 'Exportar a SQLite'}
-        </button>
-        <button 
           className="btn btn-secondary" 
           onClick={() => setRows([])} 
           disabled={rows.length === 0}
         >
           Limpiar datos
         </button>
+        </div>
+        <div className="d-flex gap-2 align-items-center ms-0-2 my-2">
+        <button
+          className="btn btn-outline-primary"
+          onClick={() => setShowModal(true)}
+          disabled={rows.length === 0}
+        >
+          Listar Saldos de Partidas
+        </button>
+      </div>
+
+      <RangoBusqueda
+        show={showModal}
+        onHide={() => setShowModal(false)}
+        onBuscar={generarPDFRango}
+        partidasOptions={partidasOptions}
+      />
+      <div className='col-12 my-4'>
+      <GenerarPDF
+        show={showPDFModal}
+        onHide={() => setShowPDFModal(false)}
+        resumen={resumenData}
+      />
       </div>
 
       <section className="mt-4">

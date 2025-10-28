@@ -177,7 +177,7 @@ export default function UploadExcel({ onData }) {
         if (missing.length > 0) {
           setRows([])
           setHeaders(headerRow)
-          setError(`Encabezados inválidos. Faltan ${missing.length} encabezados: ${missing.join(', ')}`)
+          setError(`Archivo incorrecto.No se cargo información.`)
           // no enviamos datos hacia arriba
           onData([])
           return
