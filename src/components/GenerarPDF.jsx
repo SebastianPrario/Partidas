@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-
+// genera el pdf de las partidas por rango
 export default function GenerarPDF({ show, onHide, resumen }) {
   const contentRef = useRef();
 

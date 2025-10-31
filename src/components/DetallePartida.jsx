@@ -4,16 +4,18 @@ import Liquidacion from './Liquidacion'
 export default function DetallePartida({ rows = [] , partidaNro }) {
   // Estados para mantener los precios liquidados, costos y porcentajes por DES_ARTICU
   const [preciosLiquidados, setPreciosLiquidados] = useState({})
-    const [costos, setCostos] = useState({})
-    const [porcentajes, setPorcentajes] = useState({})
-    const [usarCostosPorcentajes, setUsarCostosPorcentajes] = useState(false)
-    // Estados para modales de generación de liquidación
-    const [showFormModal, setShowFormModal] = useState(false)
-    const [proveedorForm, setProveedorForm] = useState('')
-    const [fechaForm, setFechaForm] = useState('')
-    const [showLiquidacionModal, setShowLiquidacionModal] = useState(false)
-    const [liquidacionItems, setLiquidacionItems] = useState([])
-
+  const [costos, setCostos] = useState({})
+  const [porcentajes, setPorcentajes] = useState({})
+  const [usarCostosPorcentajes, setUsarCostosPorcentajes] = useState(false)
+  // Estados para modales de generación de liquidación
+  const [showFormModal, setShowFormModal] = useState(false)
+  const [proveedorForm, setProveedorForm] = useState('')
+  const [fechaForm, setFechaForm] = useState('')
+  const [showLiquidacionModal, setShowLiquidacionModal] = useState(false)
+  const [liquidacionItems, setLiquidacionItems] = useState([])
+  // Estado para mantener los items eliminados
+  const [itemsEliminados, setItemsEliminados] = useState(new Set())
+ 
   // Computar resumen agrupado por DES_ARTICU y filtrar por rango de cantidad
   // También acumulamos EntradaTotal (TIPO_COMP = ENT | AJT) y VentaTotal (excluye ENT/AJT)
   const resumen = useMemo(() => {
@@ -47,14 +49,14 @@ export default function DetallePartida({ rows = [] , partidaNro }) {
       }
     }
 
-    // Filtramos los items cuya cantidad total esté entre -1 y 1 (inclusive)
+    // Filtramos los items eliminados y ordenamos por descripción
     const filtered = Array.from(map.values())
-      .filter(item => Math.abs(item.cantidadTotal) > 1)
+      .filter(item => !itemsEliminados.has(item.descripcion))
       .sort((a, b) => a.descripcion.localeCompare(b.descripcion))
 
     return filtered
-  }, [rows])
-
+  }, [rows, itemsEliminados])
+ 
   const handlePrecioChange = (descripcion, precio) => {
     setPreciosLiquidados(prev => ({
       ...prev,
@@ -93,15 +95,15 @@ export default function DetallePartida({ rows = [] , partidaNro }) {
 
   const handleGenerarLiquidacion = () => {
     // Construir items a partir del resumen y estados actuales
-    const items = resumen.map(({ descripcion, entradaTotal, ventaTotal }) => {
-      const entradaTot = Number(entradaTotal[descripcion]) || 0
+    const items = resumen.map(({ descripcion, cantidadTotal, entradaTotal, ventaTotal }) => {
+      console.log(cantidadTotal, entradaTotal, ventaTotal, descripcion)
       const precioLiq = Number(preciosLiquidados[descripcion]) || 0
       const costo = Number(costos[descripcion]) || 0
       return {
         descripcion,
-        entradaTotal: entradaTot,
+        entradaTotal: cantidadTotal,
         precioLiquidado: precioLiq,
-        ventaTotal: Number(ventaTotal) || 0,
+        ventaTotal: Number(cantidadTotal * precioLiq) || 0,
         costo
       }
     })
@@ -184,7 +186,32 @@ export default function DetallePartida({ rows = [] , partidaNro }) {
 
               return (
                 <tr key={descripcion}>
-                  <td>{descripcion}</td>
+                  <td className="d-flex justify-content-between align-items-center">
+                    <span>{descripcion}</span>
+                    <button 
+                      className="btn btn-sm btn-outline-danger" 
+                      onClick={() => {
+                        console.log('Eliminando item:', descripcion);
+                        setItemsEliminados(prev => new Set([...prev, descripcion]));
+                        // Limpiar estados asociados
+                        setPreciosLiquidados(prev => {
+                          const { [descripcion]: _, ...rest } = prev;
+                          return rest;
+                        });
+                        setCostos(prev => {
+                          const { [descripcion]: _, ...rest } = prev;
+                          return rest;
+                        });
+                        setPorcentajes(prev => {
+                          const { [descripcion]: _, ...rest } = prev;
+                          return rest;
+                        });
+                      }}
+                      title="Eliminar item"
+                    >
+                      ×
+                    </button>
+                  </td>
                   <td className="text-end">{cantidadTotal.toFixed(2)}</td>
                   <td className="text-end">{entradaTotal.toFixed(2)}</td>
                   {usarCostosPorcentajes && (
@@ -257,8 +284,8 @@ export default function DetallePartida({ rows = [] , partidaNro }) {
       {showLiquidacionModal && (
         <div className="modal-backdrop d-flex align-items-center justify-content-center" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.5)',zIndex:1050}}>
           <div className="card p-3" style={{width: '90%', maxHeight: '90%', overflow: 'auto'}}>
-            <div className="d-flex justify-content-between align-items-center mb-2">
-              <h5>Liquidación</h5>
+            <div className="d-flex justify-content-end align-items-center mb-2">
+           
               <button className="btn btn-sm btn-outline-secondary" onClick={cerrarModalLiquidacion}>Cerrar</button>
             </div>
             <Liquidacion proveedor={proveedorForm} fecha={fechaForm} items={liquidacionItems} />

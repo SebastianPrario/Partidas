@@ -6,9 +6,6 @@ import RangoBusqueda from './components/RangoBusqueda'
 import GenerarPDF from './components/GenerarPDF'
 
 
-const EXPORT_COLUMNS = [
-  "COD_ARTICU","DES_ARTICU", "TIPO_COMP","NUM_COMP","DIA", "MES",  "ANIO", "COD_CLIENT", "NOM_CLIENT","CANTIDAD", "PRECIO", "NRO_PARTID"
-]
 
 export default function App() {
   const [rows, setRows] = useState([])
