@@ -15,12 +15,12 @@ export default function DetallePartida({ rows = [] , partidaNro }) {
   const [liquidacionItems, setLiquidacionItems] = useState([])
   // Estado para mantener los items eliminados
   const [itemsEliminados, setItemsEliminados] = useState(new Set())
- 
+  
   // Computar resumen agrupado por DES_ARTICU y filtrar por rango de cantidad
   // También acumulamos EntradaTotal (TIPO_COMP = ENT | AJT) y VentaTotal (excluye ENT/AJT)
   const resumen = useMemo(() => {
     const map = new Map()
-
+    console.log(costos);
     for (const row of rows) {
       const desc = row['DES_ARTICU'] || ''
       if (!desc) continue
@@ -48,7 +48,7 @@ export default function DetallePartida({ rows = [] , partidaNro }) {
         item.ventaTotal += cantidad * precio
       }
     }
-
+ 
     // Filtramos los items eliminados y ordenamos por descripción
     const filtered = Array.from(map.values())
       .filter(item => !itemsEliminados.has(item.descripcion))
@@ -95,16 +95,15 @@ export default function DetallePartida({ rows = [] , partidaNro }) {
 
   const handleGenerarLiquidacion = () => {
     // Construir items a partir del resumen y estados actuales
-    const items = resumen.map(({ descripcion, cantidadTotal, entradaTotal, ventaTotal }) => {
-      console.log(cantidadTotal, entradaTotal, ventaTotal, descripcion)
+    const items = resumen.map(({ descripcion, entradaTotal }) => {
       const precioLiq = Number(preciosLiquidados[descripcion]) || 0
       const costo = Number(costos[descripcion]) || 0
       return {
         descripcion,
-        entradaTotal: cantidadTotal,
+        entradaTotal: entradaTotal,
         precioLiquidado: precioLiq,
-        ventaTotal: Number(cantidadTotal * precioLiq) || 0,
-        costo
+        ventaTotal: Number(entradaTotal * precioLiq) || 0,
+        costo: costo * entradaTotal
       }
     })
     abrirModalLiquidacion(items)
@@ -178,6 +177,7 @@ export default function DetallePartida({ rows = [] , partidaNro }) {
           </thead>
           <tbody>
             {resumen.map(({ descripcion, cantidadTotal, entradaTotal, ventaTotal }) => {
+              console.log('Calculando precio promedio para:', descripcion, cantidadTotal, entradaTotal, ventaTotal);
               const precioLiquidado = Number(preciosLiquidados[descripcion]) || 0
               const entradaValorizada = entradaTotal * precioLiquidado
               const ventaTotalVal = ventaTotal || 0

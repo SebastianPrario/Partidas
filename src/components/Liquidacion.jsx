@@ -1,11 +1,24 @@
 import React, { useRef } from 'react'
+import { formatearImporte } from '../lib/helpers/formaterImporte';
 
 export default function Liquidacion({ proveedor = '', fecha = '', items = [] }) {
-  const ventaTotalSum = items.reduce((s, it) => s + (Number(it.ventaTotal) || 0), 0)
-  const costoTotalSum = items.reduce((s, it) => s + ((Number(it.cantidadTotal) || 0) * (Number(it.costo) || 0)), 0)
+  // Ajustamos las cantidades al entero menor más cercano (floor) y recalculamos ventas/costos
+  console.log(items);
+  const adjustedItems = (items || []).map(it => {
+    const cantidadAjustada = Math.floor(Number(it.cantidadTotal || it.entradaTotal) || 0)
+    const precio = Number(it.precioLiquidado) || 0
+    const ventaAjustada = cantidadAjustada * precio
+    const costoAjustado = it.costo 
+    return { ...it, cantidadAjustada, ventaAjustada, costoAjustado }
+  })
+
+  const ventaTotalSum = adjustedItems.reduce((s, it) => s + (Number(it.ventaAjustada) || 0), 0)
+  // El costo total se calcula usando las cantidades originales (con decimales) para preservar los decimales
+  const costoTotalSum = (items || []).reduce((s, it) => s + ((Number(it.costo) || 0) ), 0)
   const comision = ventaTotalSum - costoTotalSum
   const contentRef = useRef(null)
-
+  const porcentajeComision = ventaTotalSum > 0 ?  ((comision) / ventaTotalSum) *100: 0
+  .toFixed(3)
   const handlePrint = () => {
     try {
       const content = contentRef.current ? contentRef.current.innerHTML : ''
@@ -63,16 +76,18 @@ export default function Liquidacion({ proveedor = '', fecha = '', items = [] }) 
               <th>Descripción</th>
               <th className="text-end">Cantidad Total</th>
               <th className="text-end">Precio Liquidado</th>
+              <th className="text-end">Costo Liquidado</th>
               <th className="text-end">Venta Total</th>
             </tr>
           </thead>
           <tbody>
-            {items.map((it) => (
+            {adjustedItems.map((it) => (
               <tr key={it.descripcion}>
                 <td>{it.descripcion}</td>
-                <td className="text-end">{(Number(it.entradaTotal) || 0).toFixed(2)}</td>
+                <td className="text-end">{(Number(it.cantidadAjustada) || 0).toFixed(0)}</td>
                 <td className="text-end">{(Number(it.precioLiquidado) || 0).toFixed(2)}</td>
-                <td className="text-end">{(Number(it.ventaTotal) || 0).toFixed(2)}</td>
+                <td className="text-end">{(Number(it.costoAjustado) || 0).toFixed(2)}</td>
+                <td className="text-end">{(Number(it.ventaAjustada) || 0).toFixed(2)}</td>
               </tr>
             ))}
           </tbody>
@@ -82,15 +97,27 @@ export default function Liquidacion({ proveedor = '', fecha = '', items = [] }) 
       <div className="mt-3 totales">
         <div className="d-flex justify-content-between">
           <div><strong>Venta Total:</strong></div>
-          <div>{ventaTotalSum.toFixed(2)}</div>
+          <div>{formatearImporte(ventaTotalSum.toFixed(2))}</div>
         </div>
         <div className="d-flex justify-content-between">
           <div><strong>Costo Total:</strong></div>
-          <div>{costoTotalSum.toFixed(2)}</div>
+          <div>{formatearImporte(costoTotalSum.toFixed(2))}</div>
+        </div>
+        <div className="d-flex justify-content-between">
+          <div><strong>Costo Total Final (iva incluido):</strong></div>
+          <div>{formatearImporte(costoTotalSum.toFixed(2)*1.105)}</div>
         </div>
         <div className="d-flex justify-content-between">
           <div><strong>Comisión:</strong></div>
-          <div>{comision.toFixed(2)}</div>
+          <div>{formatearImporte(comision.toFixed(2))}</div>
+        </div>
+         <div className="d-flex justify-content-between">
+          <div><strong>Porcentaje:</strong></div>
+          <div>{porcentajeComision.toFixed(3)}</div>
+        </div>
+         <div className="d-flex justify-content-between">
+          <div><strong>Venta Ajustada:</strong></div>
+          <div>{formatearImporte(((comision / porcentajeComision.toFixed(3))*100).toFixed(2))}</div>
         </div>
       </div>
       </span>
