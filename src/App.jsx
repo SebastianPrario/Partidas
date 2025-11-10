@@ -4,11 +4,9 @@ import SearchPartidas from './components/SearchPartidas'
 import DetallePartida from './components/DetallePartida'
 import RangoBusqueda from './components/RangoBusqueda'
 import GenerarPDF from './components/GenerarPDF'
+import ListaItems from './components/ListaItems'
 
 
-const EXPORT_COLUMNS = [
-  "COD_ARTICU","DES_ARTICU", "TIPO_COMP","NUM_COMP","DIA", "MES",  "ANIO", "COD_CLIENT", "NOM_CLIENT","CANTIDAD", "PRECIO", "NRO_PARTID"
-]
 
 export default function App() {
   const [rows, setRows] = useState([])
@@ -17,6 +15,7 @@ export default function App() {
   const [showModal, setShowModal] = useState(false)
   const [showPDFModal, setShowPDFModal] = useState(false)
   const [resumenData, setResumenData] = useState(null)
+  const [showListaItems, setShowListaItems] = useState(false)
 
   
   const handleFilter = (nroPartid) => {
@@ -34,6 +33,9 @@ export default function App() {
     setPartidaFilter(nroPartid)
   }
 
+
+     
+  
   const generarPDFRango = (desde, hasta) => {
     // Filtrar las partidas en el rango
     const partidasEnRango = rows.filter(row => {
@@ -83,23 +85,15 @@ export default function App() {
         >
           Limpiar datos
         </button>
+       
         </div>
-        <div className="d-flex gap-2 align-items-center ms-0-2 my-2">
-        <button
-          className="btn btn-outline-primary"
-          onClick={() => setShowModal(true)}
-          disabled={rows.length === 0}
-        >
-          Listar Saldos de Partidas
-        </button>
-      </div>
 
       <RangoBusqueda
         show={showModal}
         onHide={() => setShowModal(false)}
         onBuscar={generarPDFRango}
         partidasOptions={partidasOptions}
-      />
+      /> 
       <div className='col-12 my-4'>
       <GenerarPDF
         show={showPDFModal}
@@ -111,11 +105,27 @@ export default function App() {
       <section className="mt-4">
         <h2>Datos en memoria</h2>
         <p>Total filas: {rows.length} {filteredRows.length > 0 && `(mostrando ${filteredRows.length})`}</p>
-        <div className="mb-3">
+        <div className="mb-3 d-flex gap-2 align-items-center">
           <SearchPartidas options={partidasOptions} onFilter={handleFilter} />
+          <button 
+            className="btn btn-info btn-sm" 
+            onClick={() => setShowListaItems(!showListaItems)}
+            disabled={filteredRows.length === 0}
+          >
+            DETALLE PARTIDA 
+          </button>
         </div>
         
-        {/* Detalle partida para las filas filtradas */}
+        {/* Lista de items de la partida seleccionada */}
+        {showListaItems && filteredRows.length > 0 && (
+          <ListaItems 
+            rows={filteredRows} 
+            partidaNro={partidaFilter}
+            onClose={() => setShowListaItems(false)}
+          />
+        )}
+        
+        {/* Detalle: lista los articulos de la partida seleccionada */}
         {filteredRows.length > 0 && (
           <DetallePartida rows={filteredRows} partidaNro={partidaFilter} />
         )}
