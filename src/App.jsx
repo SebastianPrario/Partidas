@@ -4,6 +4,7 @@ import SearchPartidas from './components/SearchPartidas'
 import DetallePartida from './components/DetallePartida'
 import RangoBusqueda from './components/RangoBusqueda'
 import GenerarPDF from './components/GenerarPDF'
+import ListaItems from './components/ListaItems'
 
 
 
@@ -14,6 +15,7 @@ export default function App() {
   const [showModal, setShowModal] = useState(false)
   const [showPDFModal, setShowPDFModal] = useState(false)
   const [resumenData, setResumenData] = useState(null)
+  const [showListaItems, setShowListaItems] = useState(false)
 
   
   const handleFilter = (nroPartid) => {
@@ -103,9 +105,25 @@ export default function App() {
       <section className="mt-4">
         <h2>Datos en memoria</h2>
         <p>Total filas: {rows.length} {filteredRows.length > 0 && `(mostrando ${filteredRows.length})`}</p>
-        <div className="mb-3">
+        <div className="mb-3 d-flex gap-2 align-items-center">
           <SearchPartidas options={partidasOptions} onFilter={handleFilter} />
+          <button 
+            className="btn btn-info btn-sm" 
+            onClick={() => setShowListaItems(!showListaItems)}
+            disabled={filteredRows.length === 0}
+          >
+            DETALLE PARTIDA 
+          </button>
         </div>
+        
+        {/* Lista de items de la partida seleccionada */}
+        {showListaItems && filteredRows.length > 0 && (
+          <ListaItems 
+            rows={filteredRows} 
+            partidaNro={partidaFilter}
+            onClose={() => setShowListaItems(false)}
+          />
+        )}
         
         {/* Detalle: lista los articulos de la partida seleccionada */}
         {filteredRows.length > 0 && (
