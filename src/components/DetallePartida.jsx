@@ -20,7 +20,6 @@ export default function DetallePartida({ rows = [] , partidaNro }) {
   // También acumulamos EntradaTotal (TIPO_COMP = ENT | AJT) y VentaTotal (excluye ENT/AJT)
   const resumen = useMemo(() => {
     const map = new Map()
-    console.log(costos);
     for (const row of rows) {
       const desc = row['DES_ARTICU'] || ''
       if (!desc) continue
@@ -81,6 +80,7 @@ export default function DetallePartida({ rows = [] , partidaNro }) {
       const precio = (c * (100 + p) / 100).toFixed(2)
       setPreciosLiquidados(prev => ({ ...prev, [descripcion]: precio }))
     }
+    
   }
 
   // Funciones para manejo de modales
@@ -95,9 +95,14 @@ export default function DetallePartida({ rows = [] , partidaNro }) {
 
   const handleGenerarLiquidacion = () => {
     // Construir items a partir del resumen y estados actuales
-    const items = resumen.map(({ descripcion, entradaTotal }) => {
-      const precioLiq = Number(preciosLiquidados[descripcion]) || 0
+    
+    const items = resumen.map(({ descripcion, entradaTotal, ventaTotal, cantidadTotal }) => {
       const costo = Number(costos[descripcion]) || 0
+      const precioState = Number(preciosLiquidados[descripcion]) || 0
+      const isCantidadSmall = Math.abs(cantidadTotal) <= 1
+      const precioCalculado = (entradaTotal !== 0) ? -((ventaTotal || 0) / entradaTotal) : 0
+      const precioLiq = isCantidadSmall ? precioCalculado : precioState
+      console.log(precioLiq, entradaTotal, ventaTotal, descripcion, cantidadTotal)
       return {
         descripcion,
         entradaTotal: entradaTotal,
@@ -163,7 +168,7 @@ export default function DetallePartida({ rows = [] , partidaNro }) {
           <thead>
             <tr>
               <th>Descripción Artículo</th>
-              <th className="text-end">Cantidad Total</th>
+              <th className="text-end">Kilos a Facturar</th>
               <th className="text-end">Entrada Total</th>
               {usarCostosPorcentajes && (
                 <>
@@ -177,12 +182,20 @@ export default function DetallePartida({ rows = [] , partidaNro }) {
           </thead>
           <tbody>
             {resumen.map(({ descripcion, cantidadTotal, entradaTotal, ventaTotal }) => {
-              console.log('Calculando precio promedio para:', descripcion, cantidadTotal, entradaTotal, ventaTotal);
-              const precioLiquidado = Number(preciosLiquidados[descripcion]) || 0
-              const entradaValorizada = entradaTotal * precioLiquidado
+              const precioLiquidadoState = Number(preciosLiquidados[descripcion]) || 0
               const ventaTotalVal = ventaTotal || 0
-              // PrecioPromedio = (EntradaValorizada + VentaTotal) / CantidadTotal
-              const precioPromedio = cantidadTotal !== 0 ? (entradaValorizada + ventaTotalVal) / cantidadTotal : 0
+              const precioFromVentaEntrada = entradaTotal !== 0 ? -(ventaTotalVal / entradaTotal) : 0
+              const isCantidadSmall = Math.abs(cantidadTotal) <= 1
+
+              // Si la cantidad es +-1, usamos ventaTotal/entradaTotal como precio liquidado y no mostramos precio promedio
+              const displayPrecioLiquidado = isCantidadSmall ? precioFromVentaEntrada : precioLiquidadoState
+
+              const entradaValorizada = entradaTotal * displayPrecioLiquidado
+              let precioPromedio = 0
+              const mostrarPrecioPromedio = !isCantidadSmall && cantidadTotal !== 0
+              if (mostrarPrecioPromedio) {
+                precioPromedio = (entradaValorizada + ventaTotalVal) / cantidadTotal
+              }
 
               return (
                 <tr key={descripcion}>
@@ -244,15 +257,17 @@ export default function DetallePartida({ rows = [] , partidaNro }) {
                     <input
                       type="number"
                       className="form-control form-control-sm"
-                      value={preciosLiquidados[descripcion] || ''}
+                      value={isCantidadSmall ? (displayPrecioLiquidado !== undefined ? displayPrecioLiquidado.toFixed(2) : '') : (preciosLiquidados[descripcion] || '')}
                       onChange={(e) => handlePrecioChange(descripcion, e.target.value)}
                       placeholder="Ingrese precio"
                       step="0.01"
                       min="0"
-                      disabled={usarCostosPorcentajes && costos[descripcion] && porcentajes[descripcion]}
+                      disabled={isCantidadSmall || (usarCostosPorcentajes && costos[descripcion] && porcentajes[descripcion])}
                     />
                   </td>
-                  <td className="text-end">{precioPromedio.toFixed(2)}</td>
+                  <td className="text-end">
+                    {mostrarPrecioPromedio ? precioPromedio.toFixed(2) : <span className="text-muted">-</span>}
+                  </td>
                 </tr>
               )
             })}
