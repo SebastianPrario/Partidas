@@ -63,7 +63,7 @@ export default function App() {
     setResumenData(resumen)
     setShowPDFModal(true)
     }
-
+  // para listar las partidas //
   const partidasOptions = useMemo(() => {
     const set = new Set()
     for (const r of rows) {
@@ -99,7 +99,7 @@ export default function App() {
         show={showPDFModal}
         onHide={() => setShowPDFModal(false)}
         resumen={resumenData}
-      />
+      /> 
       </div>
 
       <section className="mt-4">
